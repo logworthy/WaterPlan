@@ -28,16 +28,22 @@ ggplot(data=india, aes(x=long, y=lat, label=name))+geom_point()
 # exclude port blair
 india <- india[name != 'Port Blair']
 
-# find the hull
+### first attempt at finding a reasonable boundary
+
+# in hindsight it occurs to me we could probably just get the boundary from maps...
+
+# find the convex hull
 india.hull <- india[chull(india$long, india$lat)]
 ggplot(data=india, aes(x=long, y=lat, label=name))+geom_point()+
   geom_path(data=rbind(india.hull, india.hull[1,]), color='red')
 
+# find the alpha hull
 # alpha=2 seems about right
 india.ahull <- ahull(india$long, india$lat, alpha=2)
 ggplot()+geom_point(data=india, aes(x=long, y=lat, label=name))+
   geom_segment(data=data.table(india.ahull$ashape.obj$edges), aes(x=x1,xend=x2, y=y1,yend=y2), color='red')
 
+# to turn the alpha hull into a usable polygon, need to order the edges
 # sort the edges
 edges <- data.table(india.ahull$ashape.obj$edges)
 setkey(edges, ind1)
@@ -86,6 +92,7 @@ new_point <- function(x, y) {
 }
 
 # randomly generate 10 candidate plant locations
+set.seed(123)
 plants <- ldply(
   .data=1:10
   , .fun=function(x) {
@@ -240,13 +247,14 @@ param:
     return(var)
   }
 
+  set.seed(123)
   plants[,'capacity'] <- round(sapply(FUN=function(x) skew.dist(3785, 378500, 75700), 1:10))
   
 
 # costs will take the form:
   build_costs[,'name'] <- paste0('tier', 1:nrow(build_costs))
-  build_costs[,'base'] <- c(0, build_costs[,'capacity'])[1:nrow(build_costs)]
-  build_costs[,'capacity'] <- build_costs[,'capacity']-1
+  build_costs[,'base'] <- c(0, build_costs[,capacity])[1:nrow(build_costs)]
+  build_costs[,'capacity'] <- build_costs[,capacity]-1
   tier1 : 2165020+572*(3785-capacity)
   tier2 : 3270240+432*(7570-capacity)
 
@@ -277,6 +285,8 @@ param:
   system.time({
   geo_dist_matrix <- GeoDistanceInMetresMatrix(data.frame(dist_matrix))
   })
+#   user  system elapsed 
+#   99.97    0.02  100.02 
 
   # 6c per 100km
   # this needs to be multiplied by m3 volume
@@ -285,10 +295,11 @@ param:
 
   # 1 litre = 0.001 cubic metres
   
+  set.seed(123)
   sample_cities <- sample(nrow(india), 10)
   sample_full <- india[sample_cities,]
-  sample_full[,'demand'] <- sample_full[,'pop'] * 100 * 0.001 # demand in cubic m
-  sample_names <- india[sample_cities,'name']
+  sample_full[,'demand'] <- sample_full[,pop] * 100 * 0.001 # demand in cubic m
+  sample_names <- india[sample_cities,name]
   sample_cost_matrix <- geo_cost_matrix[sample_names,sample_names]
   sample_cost_long <- expand.grid(row=rownames(sample_cost_matrix),col=colnames(sample_cost_matrix))
   sample_cost_vec <- as.vector(sample_cost_matrix)
@@ -300,14 +311,14 @@ param:
   # try writing data for first 10 cities
   problem_data <- sprintf("set CITIES := %s;", paste(sprintf('"%s"', sample_names), collapse=','))
   problem_data <- paste(problem_data, sprintf("set PLANTS := %s;", paste(sprintf('"%s"', plants[,'name']), collapse=',')), sep='\n')
-  problem_data <- paste(problem_data, sprintf("set TIERS := %s;", paste(sprintf('"%s"', build_costs[,'name']), collapse=',')), sep='\n')
+  problem_data <- paste(problem_data, sprintf("set TIERS := %s;", paste(sprintf('"%s"', build_costs[,name]), collapse=',')), sep='\n')
   problem_data <- paste(problem_data, sprintf("param build_max_capacity := %s;"
-    , paste(sprintf('[%s] %s', build_costs[,'name'], build_costs[,'capacity']), collapse='\n')
+    , paste(sprintf('[%s] %s', build_costs[,name], build_costs[,capacity]), collapse='\n')
     )
       , sep='\n'
   )
   problem_data <- paste(problem_data, sprintf("param build_base_capacity := %s;"
-                                              , paste(sprintf('[%s] %s', build_costs[,'name'], build_costs[,'base']), collapse='\n')
+                                              , paste(sprintf('[%s] %s', build_costs[,name], build_costs[,base]), collapse='\n')
   )
   , sep='\n'
   )
@@ -325,7 +336,7 @@ param:
   , sep='\n'
   )
   problem_data <- paste(problem_data, sprintf("param demand := %s;"
-                                              , paste(sprintf('["%s"] %s', sample_full[,'name'], sample_full[,'demand']), collapse='\n')
+                                              , paste(sprintf('["%s"] %s', sample_full[,name], sample_full[,demand]), collapse='\n')
   )
   , sep='\n'
   )

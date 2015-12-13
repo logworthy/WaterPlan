@@ -1,6 +1,6 @@
-# C:\NotBackedUp\gusek_0-2-18\gusek\glpsol.exe --model "\\svrau100qsm01.oceania.corp.anz.com\PFSMB PBWMg\Deposits\Cash&TDs\Pricing Analysis\Pricing Tool\Test & Learn\2015_03 State and FUM\Analysis\LPs\vanilla.mod" -d "\\svrau100qsm01.oceania.corp.anz.com\PFSMB PBWMg\Deposits\Cash&TDs\Pricing Analysis\Pricing Tool\Test & Learn\2015_03 State and FUM\Analysis\LPs\sft_prcg_3dim.dat"
+# G:\Dev\gusek\glpsol.exe --model "G:\Google Drive\R Projects\Water Distribution\Problem.mod" -d "G:\Google Drive\R Projects\Water Distribution\Problem.dat o /dev/stdout"
 
-#F:\NotBackedUp\gusek_0-2-18\gusek\glpsol.exe  --cover --clique --gomory --mir -m "Problem.mod" -d "Problem.dat" -o /dev/stdout  
+# G:\Dev\gusek\glpsol.exe  --cover --clique --gomory --mir -m "Problem.mod" -d "Problem.dat" -o "Problem.sol"
 
 set CITIES;
 set PLANTS;
